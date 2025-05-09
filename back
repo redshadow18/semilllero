@@ -1,1 +1,194 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import math
 
+app = Flask(__name__)
+CORS(app)  # Habilitar CORS para permitir solicitudes desde el frontend
+
+@app.route('/api/calculate', methods=['POST'])
+def calculate():
+    # Recibir datos del formulario
+    data = request.json
+    
+    # Validar datos de entrada
+    gender = data.get('gender')
+    age = int(data.get('age', 0))
+    weight = float(data.get('weight', 0))
+    height = float(data.get('height', 0))
+    activity_level = float(data.get('activityLevel', 0))
+    goal = data.get('goal')
+    
+    # Validar rango de edad
+    if age < 30 or age > 50:
+        return jsonify({"error": "La edad debe estar entre 30 y 50 años"}), 400
+    
+    # Validar otros parámetros
+    if not all([gender, weight, height, activity_level, goal]) or weight < 30 or height < 120:
+        return jsonify({"error": "Datos incompletos o inválidos"}), 400
+    
+    # Calcular IMC
+    bmi = weight / math.pow(height/100, 2)
+    
+    # Calcular metabolismo basal (BMR) usando fórmula de Mifflin-St Jeor
+    if gender == 'male':
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5
+    else:
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161
+    
+    # Calcular gasto energético total diario (TDEE)
+    tdee = bmr * activity_level
+    
+    # Calorías según objetivo
+    if goal == 'lose':
+        goal_calories = tdee * 0.85  # Déficit del 15%
+        protein_per_kg = 2.0
+        carbs_percent = 40
+        fats_percent = 25
+    elif goal == 'maintain':
+        goal_calories = tdee
+        protein_per_kg = 1.6
+        carbs_percent = 45
+        fats_percent = 30
+    else:  # gain
+        goal_calories = tdee * 1.1  # Superávit del 10%
+        protein_per_kg = 2.2
+        carbs_percent = 50
+        fats_percent = 25
+    
+    # Calcular macronutrientes
+    protein = protein_per_kg * weight
+    protein_calories = protein * 4
+    protein_percent = round((protein_calories / goal_calories) * 100)
+    
+    fats_calories = (fats_percent / 100) * goal_calories
+    fats = round(fats_calories / 9)
+    
+    carbs_calories = goal_calories - protein_calories - fats_calories
+    carbs = round(carbs_calories / 4)
+    
+    # Generar planes de alimentación y ejercicio
+    diet_plan = generate_diet_plan(bmi, goal, gender, goal_calories)
+    exercise_plan = generate_exercise_plan(bmi, goal, gender, age)
+    
+    # Preparar respuesta
+    response = {
+        "metrics": {
+            "bmi": round(bmi, 1),
+            "bmr": round(bmr),
+            "tdee": round(tdee),
+            "goalCalories": round(goal_calories)
+        },
+        "macros": {
+            "protein": round(protein),
+            "proteinPercent": protein_percent,
+            "carbs": carbs,
+            "carbsPercent": round((carbs_calories / goal_calories) * 100),
+            "fats": fats,
+            "fatsPercent": round((fats_calories / goal_calories) * 100)
+        },
+        "dietPlan": diet_plan,
+        "exercisePlan": exercise_plan
+    }
+    
+    return jsonify(response)
+
+def generate_diet_plan(bmi, goal, gender, calories):
+    """Genera un plan de dieta basado en los parámetros del usuario"""
+    
+    # Descripción según objetivo
+    if goal == 'lose':
+        description = "Este plan está diseñado para ayudarte a perder peso de forma saludable con un déficit calórico moderado."
+        meals = [
+            {"name": "Desayuno", "content": "Tortilla de claras (3) con espinacas y champiñones + 1 rebanada de pan integral"},
+            {"name": "Media mañana", "content": "1 manzana + 15g de almendras"},
+            {"name": "Almuerzo", "content": "120g de pechuga de pollo a la plancha + ensalada grande + 100g de arroz integral"},
+            {"name": "Merienda", "content": "Yogur griego natural con frutos rojos"},
+            {"name": "Cena", "content": "140g de pescado blanco al horno + verduras al vapor + 100g de batata"}
+        ]
+    elif goal == 'maintain':
+        description = "Este plan está equilibrado para mantener tu peso actual y salud óptima."
+        meals = [
+            {"name": "Desayuno", "content": "Avena (50g) con leche + 1 plátano + 1 cucharada de mantequilla de almendras"},
+            {"name": "Media mañana", "content": "Tostada integral con aguacate + huevo cocido"},
+            {"name": "Almuerzo", "content": "130g de salmón + 150g de quinoa + verduras salteadas"},
+            {"name": "Merienda", "content": "Batido de proteínas con frutas y avena"},
+            {"name": "Cena", "content": "120g de pavo a la plancha + ensalada mixta + 120g de pasta integral"}
+        ]
+    else:  # gain
+        description = "Este plan apoya el crecimiento muscular con un superávit calórico y alto consumo de proteínas."
+        meals = [
+            {"name": "Desayuno", "content": "3 huevos revueltos + 2 rebanadas de pan integral + aguacate + batido de proteínas"},
+            {"name": "Media mañana", "content": "Yogur griego con granola y miel + nueces"},
+            {"name": "Almuerzo", "content": "180g de pollo a la plancha + 200g de arroz + verduras salteadas"},
+            {"name": "Merienda", "content": "Batido de proteínas con plátano, mantequilla de cacahuete y avena"},
+            {"name": "Cena", "content": "170g de carne roja magra + 250g de patatas + ensalada completa"}
+        ]
+    
+    tips = [
+        "Mantén una buena hidratación bebiendo al menos 2 litros de agua al día.",
+        "Limita el consumo de alimentos ultraprocesados y azúcares añadidos.",
+        "Consume al menos 5 porciones de frutas y verduras diariamente.",
+        "Distribuye tu ingesta de proteínas a lo largo del día para optimizar la síntesis proteica.",
+        "Planifica tus comidas con antelación para evitar decisiones impulsivas."
+    ]
+    
+    return {
+        "description": description,
+        "meals": meals,
+        "tips": tips
+    }
+
+def generate_exercise_plan(bmi, goal, gender, age):
+    """Genera un plan de ejercicios basado en los parámetros del usuario"""
+    
+    # Descripción según objetivo
+    if goal == 'lose':
+        description = "Este plan combina ejercicio cardiovascular para quemar calorías con entrenamiento de fuerza."
+        routine = [
+            {"day": "Lunes", "content": "Cardio (30-45 min de caminata rápida, ciclismo o elíptica) + 15 min de core"},
+            {"day": "Martes", "content": "Entrenamiento de fuerza para tren superior (3 series de 12-15 repeticiones)"},
+            {"day": "Miércoles", "content": "HIIT (20 min) + estiramientos (10 min)"},
+            {"day": "Jueves", "content": "Entrenamiento de fuerza para tren inferior (3 series de 12-15 repeticiones)"},
+            {"day": "Viernes", "content": "Cardio (30-45 min) + core (15 min)"},
+            {"day": "Sábado", "content": "Entrenamiento de cuerpo completo (circuito) o actividad recreativa"},
+            {"day": "Domingo", "content": "Descanso activo (caminata suave, yoga)"}
+        ]
+    elif goal == 'maintain':
+        description = "Este plan equilibrado incluye una mezcla de cardio, fuerza y flexibilidad."
+        routine = [
+            {"day": "Lunes", "content": "Entrenamiento de fuerza para tren superior (4 series de 10-12 repeticiones)"},
+            {"day": "Martes", "content": "Cardio moderado (30 min) + yoga/pilates (20 min)"},
+            {"day": "Miércoles", "content": "Entrenamiento de fuerza para tren inferior (4 series de 10-12 repeticiones)"},
+            {"day": "Jueves", "content": "HIIT o deporte recreativo (45 min)"},
+            {"day": "Viernes", "content": "Entrenamiento de cuerpo completo (4 series de 10-12 repeticiones)"},
+            {"day": "Sábado", "content": "Actividad recreativa al aire libre (60 min)"},
+            {"day": "Domingo", "content": "Descanso completo o yoga restaurativo"}
+        ]
+    else:  # gain
+        description = "Este plan se centra en el entrenamiento de fuerza con ejercicios compuestos."
+        routine = [
+            {"day": "Lunes", "content": "Pecho y tríceps (5 series de 6-10 repeticiones) + cardio suave (15 min)"},
+            {"day": "Martes", "content": "Espalda y bíceps (5 series de 6-10 repeticiones) + core"},
+            {"day": "Miércoles", "content": "Cardio moderado (20-30 min) o descanso activo"},
+            {"day": "Jueves", "content": "Piernas y glúteos (5 series de 6-10 repeticiones)"},
+            {"day": "Viernes", "content": "Hombros y core (5 series de 6-10 repeticiones) + cardio suave (15 min)"},
+            {"day": "Sábado", "content": "Entrenamiento de cuerpo completo o ejercicios de debilidades"},
+            {"day": "Domingo", "content": "Descanso completo"}
+        ]
+    
+    tips = [
+        "Realiza un calentamiento adecuado de 5-10 minutos antes de cada sesión.",
+        "Mantén una técnica correcta para prevenir lesiones.",
+        "Incrementa gradualmente la intensidad para permitir la adaptación del cuerpo.",
+        "Asegúrate de descansar lo suficiente entre sesiones intensas.",
+        "Escucha a tu cuerpo y adapta el entrenamiento según sea necesario."
+    ]
+    
+    return {
+        "description": description,
+        "routine": routine,
+        "tips": tips
+    }
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
