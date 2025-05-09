@@ -1,0 +1,187 @@
+## Estructura del Proyecto - Calculadora de Dieta y Ejercicio
+
+### Backend Python (Flask)
+
+```
+calculadora-backend/
+├── app.py                  # Aplicación principal Flask
+├── requirements.txt        # Dependencias del proyecto
+└── Dockerfile              # Configuración para Docker (opcional)
+```
+
+### Frontend Java Spring
+
+```
+calculadora-frontend/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/
+│   │   │       └── calculadora/
+│   │   │           └── nutricional/
+│   │   │               ├── CalculadoraNutricionalApplication.java
+│   │   │               ├── controller/
+│   │   │               │   ├── CalculadoraController.java
+│   │   │               │   └── CalculadoraApiController.java
+│   │   │               ├── model/
+│   │   │               │   ├── CalculadoraRequest.java
+│   │   │               │   └── CalculadoraResponse.java
+│   │   │               ├── service/
+│   │   │               │   └── CalculadoraService.java
+│   │   │               └── config/
+│   │   │                   └── AppConfig.java
+│   │   └── resources/
+│   │       ├── application.properties
+│   │       ├── static/
+│   │       │   └── css/
+│   │       │       └── styles.css
+│   │       └── templates/
+│   │           └── index.html
+│   └── test/               # Pruebas unitarias e integración
+│       └── java/
+└── pom.xml                 # Configuración de Maven
+```
+
+### Archivo requirements.txt (Python)
+
+```
+flask==2.3.2
+flask-cors==4.0.0
+gunicorn==21.2.0
+```
+
+### Archivo pom.xml (Spring)
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.1.5</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>com.calculadora</groupId>
+    <artifactId>nutricional</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>calculadora-nutricional</name>
+    <description>Calculadora de dieta y ejercicio</description>
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+## Guía de Instalación
+
+### Configuración del Backend (Python)
+
+1. Crear un entorno virtual y activarlo:
+
+```bash
+python -m venv venv
+# En Windows
+venv\Scripts\activate
+# En Linux/Mac
+source venv/bin/activate
+```
+
+2. Instalar dependencias:
+
+```bash
+pip install -r requirements.txt
+```
+
+3. Ejecutar el servidor Flask:
+
+```bash
+python app.py
+```
+
+El servidor estará disponible en http://localhost:5000.
+
+### Configuración del Frontend (Spring)
+
+1. Asegúrate de tener instalado Java 17 y Maven.
+
+2. Compilar el proyecto:
+
+```bash
+mvn clean install
+```
+
+3. Ejecutar la aplicación Spring:
+
+```bash
+mvn spring-boot:run
+```
+
+El frontend estará disponible en http://localhost:8080.
+
+## Diagrama de la Arquitectura
+
+```
++------------------+        HTTP/JSON        +-------------------+
+|                  | <-------------------->  |                   |
+|  Frontend        |                         |  Backend          |
+|  (Java Spring)   |       REST API          |  (Python Flask)   |
+|  Puerto: 8080    | <-------------------->  |  Puerto: 5000     |
+|                  |                         |                   |
++------------------+                         +-------------------+
+       ^                                              ^
+       |                                              |
+       v                                              v
++------------------+                         +-------------------+
+|                  |                         |                   |
+| Navegador web    |                         | Lógica de cálculo |
+| del Usuario      |                         | y generación de   |
+| (HTML/JS/CSS)    |                         | planes            |
+|                  |                         |                   |
++------------------+                         +-------------------+
+```
+
+## Notas adicionales para despliegue
+
+- Para un entorno de producción, considere configurar un servidor web como Nginx para servir el frontend.
+- El backend Python podría desplegarse usando Gunicorn como servidor WSGI.
+- Se recomienda implementar un sistema de registro (logging) para ambos componentes.
+- Para mejorar la seguridad, considere agregar HTTPS y validación de entradas más robusta.
