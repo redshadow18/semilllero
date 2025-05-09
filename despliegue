@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  python-backend:
+    build:
+      context: ./calculadora-backend
+    container_name: calculadora-backend
+    ports:
+      - "5000:5000"
+    restart: always
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+    volumes:
+      - ./calculadora-backend:/app
+    networks:
+      - calculadora-network
+
+  spring-frontend:
+    build:
+      context: ./calculadora-frontend
+    container_name: calculadora-frontend
+    ports:
+      - "8080:8080"
+    restart: always
+    environment:
+      - PYTHON_API_URL=http://python-backend:5000
+    depends_on:
+      - python-backend
+    networks:
+      - calculadora-network
+
+networks:
+  calculadora-network:
+    driver: bridge
