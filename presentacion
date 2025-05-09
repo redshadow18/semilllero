@@ -293,4 +293,4 @@
                     weight: weight,
                     height: height,
                     activityLevel: parseFloat(document.getElementById('activity').value),
-                    goal: document.getElementById('goal').
+                    goal: document.getElementById('goal').value
